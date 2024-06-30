@@ -55,7 +55,7 @@ async function run() {
         const myTasks = await taskCollection
           .find({ creator_email: email })
           .toArray();
-        res.send(myTasks);
+        res.send(myTasks.reverse());
       } catch (err) {
         res.send({ error: err.message });
       }
@@ -78,7 +78,7 @@ async function run() {
     app.get("/users", async (req, res) => {
       try {
         const users = await usersCollection.find().toArray();
-        res.send(users);
+        res.send(users.reverse());
       } catch (err) {
         res.send({ error: err.message });
       }
@@ -97,7 +97,6 @@ async function run() {
         });
       }
       const result = await usersCollection.insertOne(user);
-      console.log(result);
       res.send(result);
     });
 
@@ -179,6 +178,19 @@ async function run() {
           { $inc: { coin: coin } }
         );
         const result = await taskCollection.deleteOne({
+          _id: ObjectId.createFromHexString(id),
+        });
+        res.send(result);
+      } catch (err) {
+        res.send({ error: err.message });
+      }
+    });
+
+    app.delete("/user/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+
+        const result = await usersCollection.deleteOne({
           _id: ObjectId.createFromHexString(id),
         });
         res.send(result);
