@@ -75,6 +75,15 @@ async function run() {
       res.send(user);
     });
 
+    app.get("/users", async (req, res) => {
+      try {
+        const users = await usersCollection.find().toArray();
+        res.send(users);
+      } catch (err) {
+        res.send({ error: err.message });
+      }
+    });
+
     app.post("/users", async (req, res) => {
       const user = req.body;
       const user_email = user.user_email;
@@ -142,6 +151,22 @@ async function run() {
         );
         res.send(result);
       } catch (err) {
+        res.send({ error: err.message });
+      }
+    });
+
+    app.patch("/user", async (req, res) => {
+      try {
+        const { id, role: updatedRole } = req.body;
+
+        const result = await usersCollection.updateOne(
+          { _id: ObjectId.createFromHexString(id) },
+          { $set: { role: updatedRole } }
+        );
+        console.log(result);
+        res.send(result);
+      } catch (err) {
+        console.log(result);
         res.send({ error: err.message });
       }
     });
