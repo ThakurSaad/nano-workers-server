@@ -32,7 +32,7 @@ async function run() {
     const withdrawCollection = client.db("nanoDB").collection("withdraws");
     const paymentCollection = client.db("nanoDB").collection("payments");
 
-    app.get("/taskList", async (req, res) => {
+    app.get("/tasks", async (req, res) => {
       const taskList = await taskCollection.find().toArray();
       res.send(taskList.reverse());
     });
@@ -177,6 +177,18 @@ async function run() {
           { user_email: email },
           { $inc: { coin: coin } }
         );
+        const result = await taskCollection.deleteOne({
+          _id: ObjectId.createFromHexString(id),
+        });
+        res.send(result);
+      } catch (err) {
+        res.send({ error: err.message });
+      }
+    });
+
+    app.delete("/task/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
         const result = await taskCollection.deleteOne({
           _id: ObjectId.createFromHexString(id),
         });
