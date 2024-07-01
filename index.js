@@ -45,13 +45,28 @@ async function run() {
         process.env.ACCESS_TOKEN_SECRET,
         function (err, decoded) {
           if (err) {
-            return res.status(401).send({ message: "unauthorized access" });
+            return res.status(400).send({ message: "bad request" });
           } else {
             req.decoded = decoded;
             next();
           }
         }
       );
+    };
+
+    const verifyAdmin = async (req, res, next) => {
+      try {
+        const email = req.decoded.email;
+        const user = await usersCollection.findOne({ user_email: email });
+        if (user.role === "admin") {
+          next();
+        } else {
+          return res.status(403).send({ message: "forbidden access" });
+        }
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
     };
 
     app.get("/tasks", async (req, res) => {
