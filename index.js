@@ -33,12 +33,33 @@ async function run() {
     const withdrawCollection = client.db("nanoDB").collection("withdraws");
     const paymentCollection = client.db("nanoDB").collection("payments");
 
+    const verifyToken = (req, res, next) => {
+      const bearer = req.headers.authorization;
+      if (!bearer) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
+
+      const token = bearer.split(" ")[1];
+      jwt.verify(
+        token,
+        process.env.ACCESS_TOKEN_SECRET,
+        function (err, decoded) {
+          if (err) {
+            return res.status(401).send({ message: "unauthorized access" });
+          } else {
+            req.decoded = decoded;
+            next();
+          }
+        }
+      );
+    };
+
     app.get("/tasks", async (req, res) => {
       const taskList = await taskCollection.find().toArray();
       res.send(taskList.reverse());
     });
 
-    app.get("/task/:id", async (req, res) => {
+    app.get("/task/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
         const task = await taskCollection.findOne({
