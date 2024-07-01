@@ -6,6 +6,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const stripe = require("stripe")(
   "sk_test_51L0k3pBXb2oMSwoOOFy5628JpwJdNvtEhCP9hO3K2TqlVjPcH7iv15BhLwIiFjxi4XiUCHApCK2U7Gts9KnVpy1K00hxRiASsW"
 );
+const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 5000;
 
 app.use(cors());
@@ -45,6 +46,7 @@ async function run() {
         });
         res.send(task);
       } catch (err) {
+        console.log(err);
         res.send({ error: err.message });
       }
     });
@@ -57,6 +59,7 @@ async function run() {
           .toArray();
         res.send(myTasks.reverse());
       } catch (err) {
+        console.log(err);
         res.send({ error: err.message });
       }
     });
@@ -80,6 +83,7 @@ async function run() {
         const users = await usersCollection.find().toArray();
         res.send(users.reverse());
       } catch (err) {
+        console.log(err);
         res.send({ error: err.message });
       }
     });
@@ -110,10 +114,9 @@ async function run() {
       try {
         const withdraw = req.body;
         const result = await withdrawCollection.insertOne(withdraw);
-        console.log(result);
         res.send(result);
       } catch (err) {
-        console.log(err.message);
+        console.log(err);
         res.send({ error: err.message });
       }
     });
@@ -130,6 +133,29 @@ async function run() {
         );
         res.send(result);
       } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
+    });
+
+    app.post("/jwt", async (req, res) => {
+      try {
+        const payload = req.body;
+
+        jwt.sign(
+          payload,
+          process.env.ACCESS_TOKEN_SECRET,
+          { expiresIn: "1h" },
+          function (err, token) {
+            if (err) {
+              return res.send({ error: err.message });
+            } else {
+              return res.send({ token: token });
+            }
+          }
+        );
+      } catch (err) {
+        console.log(err);
         res.send({ error: err.message });
       }
     });
@@ -150,6 +176,7 @@ async function run() {
         );
         res.send(result);
       } catch (err) {
+        console.log(err);
         res.send({ error: err.message });
       }
     });
@@ -162,10 +189,9 @@ async function run() {
           { _id: ObjectId.createFromHexString(id) },
           { $set: { role: updatedRole } }
         );
-        console.log(result);
         res.send(result);
       } catch (err) {
-        console.log(result);
+        console.log(err);
         res.send({ error: err.message });
       }
     });
@@ -182,6 +208,7 @@ async function run() {
         });
         res.send(result);
       } catch (err) {
+        console.log(err);
         res.send({ error: err.message });
       }
     });
@@ -194,6 +221,7 @@ async function run() {
         });
         res.send(result);
       } catch (err) {
+        console.log(err);
         res.send({ error: err.message });
       }
     });
@@ -207,6 +235,7 @@ async function run() {
         });
         res.send(result);
       } catch (err) {
+        console.log(err);
         res.send({ error: err.message });
       }
     });
@@ -219,6 +248,7 @@ async function run() {
           .toArray();
         res.send(payments.reverse());
       } catch (err) {
+        console.log(err);
         res.send({ error: err.message });
       }
     });
@@ -234,6 +264,7 @@ async function run() {
 
         res.send({ client_secret: paymentIntent.client_secret });
       } catch (err) {
+        console.log(err);
         res.send({ error: err.message });
       }
     });
