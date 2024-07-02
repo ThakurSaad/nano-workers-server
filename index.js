@@ -87,7 +87,7 @@ async function run() {
       }
     });
 
-    app.get("/myTasks/:email", async (req, res) => {
+    app.get("/myTasks/:email", verifyToken, async (req, res) => {
       try {
         const email = req.params.email;
         const myTasks = await taskCollection
@@ -100,7 +100,7 @@ async function run() {
       }
     });
 
-    app.get("/submission/:email", async (req, res) => {
+    app.get("/submission/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const mySubmissions = await submissionCollection
         .find({ worker_email: email })
@@ -108,13 +108,13 @@ async function run() {
       res.send(mySubmissions.reverse());
     });
 
-    app.get("/user/:email", async (req, res) => {
+    app.get("/user/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const user = await usersCollection.findOne({ user_email: email });
       res.send(user);
     });
 
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const users = await usersCollection.find().toArray();
         res.send(users.reverse());
@@ -140,13 +140,13 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/submission", async (req, res) => {
+    app.post("/submission", verifyToken, async (req, res) => {
       const submission = req.body;
       const result = await submissionCollection.insertOne(submission);
       res.send(result);
     });
 
-    app.post("/withdraw", async (req, res) => {
+    app.post("/withdraw", verifyToken, async (req, res) => {
       try {
         const withdraw = req.body;
         const result = await withdrawCollection.insertOne(withdraw);
@@ -157,7 +157,7 @@ async function run() {
       }
     });
 
-    app.post("/task", async (req, res) => {
+    app.post("/task", verifyToken, async (req, res) => {
       try {
         const task = req.body;
         const { task_count, payable_amount, creator_email } = task;
@@ -196,7 +196,7 @@ async function run() {
       }
     });
 
-    app.patch("/task/:id", async (req, res) => {
+    app.patch("/task/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
         const { task_title, task_detail, submission_info } = req.body;
@@ -217,7 +217,7 @@ async function run() {
       }
     });
 
-    app.patch("/user", async (req, res) => {
+    app.patch("/user", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const { id, role: updatedRole } = req.body;
 
@@ -232,7 +232,7 @@ async function run() {
       }
     });
 
-    app.delete("/task", async (req, res) => {
+    app.delete("/task", verifyToken, async (req, res) => {
       try {
         const { id, coin, email } = req.body;
         await usersCollection.updateOne(
@@ -249,7 +249,7 @@ async function run() {
       }
     });
 
-    app.delete("/task/:id", async (req, res) => {
+    app.delete("/task/:id", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const id = req.params.id;
         const result = await taskCollection.deleteOne({
@@ -262,7 +262,7 @@ async function run() {
       }
     });
 
-    app.delete("/user/:id", async (req, res) => {
+    app.delete("/user/:id", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const id = req.params.id;
 
@@ -276,7 +276,7 @@ async function run() {
       }
     });
 
-    app.get("/payments/:email", async (req, res) => {
+    app.get("/payments/:email", verifyToken, async (req, res) => {
       try {
         const email = req.params.email;
         const payments = await paymentCollection
@@ -289,7 +289,7 @@ async function run() {
       }
     });
 
-    app.post("/create-payment-intent", async (req, res) => {
+    app.post("/create-payment-intent", verifyToken, async (req, res) => {
       try {
         const { dollars } = req.body;
         const paymentIntent = await stripe.paymentIntents.create({
@@ -305,7 +305,7 @@ async function run() {
       }
     });
 
-    app.post("/payment", async (req, res) => {
+    app.post("/payment", verifyToken, async (req, res) => {
       try {
         const payment = req.body;
 
