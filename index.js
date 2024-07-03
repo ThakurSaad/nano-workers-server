@@ -45,6 +45,7 @@ async function run() {
         process.env.ACCESS_TOKEN_SECRET,
         function (err, decoded) {
           if (err) {
+            console.log(err);
             return res.status(400).send({ message: "bad request" });
           } else {
             req.decoded = decoded;
@@ -106,6 +107,19 @@ async function run() {
         .find({ worker_email: email })
         .toArray();
       res.send(mySubmissions.reverse());
+    });
+
+    app.get("/submission/review/:email", verifyToken, async (req, res) => {
+      try {
+        const email = req.params.email;
+        const reviewSubmissions = await submissionCollection
+          .find({ creator_email: email })
+          .toArray();
+        res.send(reviewSubmissions.reverse());
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
     });
 
     app.get("/user/:email", verifyToken, async (req, res) => {
@@ -181,7 +195,7 @@ async function run() {
         jwt.sign(
           payload,
           process.env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "1h" },
+          { expiresIn: "24h" },
           function (err, token) {
             if (err) {
               return res.send({ error: err.message });
@@ -224,6 +238,28 @@ async function run() {
         const result = await usersCollection.updateOne(
           { _id: ObjectId.createFromHexString(id) },
           { $set: { role: updatedRole } }
+        );
+        res.send(result);
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
+    });
+
+    app.patch("/submission", verifyToken, async (req, res) => {
+      try {
+        const { id, status, coins, email } = req.body;
+
+        if (coins && email) {
+          await usersCollection.updateOne(
+            { user_email: email },
+            { $inc: { coin: coins } }
+          );
+        }
+
+        const result = await submissionCollection.updateOne(
+          { _id: ObjectId.createFromHexString(id) },
+          { $set: { status: status } }
         );
         res.send(result);
       } catch (err) {
