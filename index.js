@@ -312,6 +312,16 @@ async function run() {
       }
     });
 
+    app.get("/payments", verifyToken, verifyAdmin, async (req, res) => {
+      try {
+        const payments = await paymentCollection.find().toArray();
+        res.send(payments.reverse());
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
+    });
+
     app.get("/payments/:email", verifyToken, async (req, res) => {
       try {
         const email = req.params.email;
