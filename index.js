@@ -85,6 +85,21 @@ async function run() {
       }
     };
 
+    const verifyWorker = async (req, res, next) => {
+      try {
+        const email = req.decoded.email;
+        const user = await usersCollection.findOne({ user_email: email });
+        if (user.role === "worker") {
+          next();
+        } else {
+          return res.status(403).send({ message: "forbidden access" });
+        }
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
+    };
+
     app.get("/tasks", async (req, res) => {
       const taskList = await taskCollection.find().toArray();
       res.send(taskList.reverse());
