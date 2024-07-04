@@ -70,6 +70,21 @@ async function run() {
       }
     };
 
+    const verifyTaskCreator = async (req, res, next) => {
+      try {
+        const email = req.decoded.email;
+        const user = await usersCollection.findOne({ user_email: email });
+        if (user.role === "task-creator") {
+          next();
+        } else {
+          return res.status(403).send({ message: "forbidden access" });
+        }
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
+    };
+
     app.get("/tasks", async (req, res) => {
       const taskList = await taskCollection.find().toArray();
       res.send(taskList.reverse());
@@ -88,18 +103,23 @@ async function run() {
       }
     });
 
-    app.get("/myTasks/:email", verifyToken, async (req, res) => {
-      try {
-        const email = req.params.email;
-        const myTasks = await taskCollection
-          .find({ creator_email: email })
-          .toArray();
-        res.send(myTasks.reverse());
-      } catch (err) {
-        console.log(err);
-        res.send({ error: err.message });
+    app.get(
+      "/myTasks/:email",
+      verifyToken,
+      verifyTaskCreator,
+      async (req, res) => {
+        try {
+          const email = req.params.email;
+          const myTasks = await taskCollection
+            .find({ creator_email: email })
+            .toArray();
+          res.send(myTasks.reverse());
+        } catch (err) {
+          console.log(err);
+          res.send({ error: err.message });
+        }
       }
-    });
+    );
 
     app.get("/submission/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
@@ -109,18 +129,23 @@ async function run() {
       res.send(mySubmissions.reverse());
     });
 
-    app.get("/submission/review/:email", verifyToken, async (req, res) => {
-      try {
-        const email = req.params.email;
-        const reviewSubmissions = await submissionCollection
-          .find({ creator_email: email })
-          .toArray();
-        res.send(reviewSubmissions.reverse());
-      } catch (err) {
-        console.log(err);
-        res.send({ error: err.message });
+    app.get(
+      "/submission/review/:email",
+      verifyToken,
+      verifyTaskCreator,
+      async (req, res) => {
+        try {
+          const email = req.params.email;
+          const reviewSubmissions = await submissionCollection
+            .find({ creator_email: email })
+            .toArray();
+          res.send(reviewSubmissions.reverse());
+        } catch (err) {
+          console.log(err);
+          res.send({ error: err.message });
+        }
       }
-    });
+    );
 
     app.get("/user/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
@@ -132,6 +157,16 @@ async function run() {
       try {
         const users = await usersCollection.find().toArray();
         res.send(users.reverse());
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
+    });
+
+    app.get("/withdraw", verifyToken, verifyAdmin, async (req, res) => {
+      try {
+        const withdrawals = await withdrawCollection.find().toArray();
+        res.send(withdrawals.reverse());
       } catch (err) {
         console.log(err);
         res.send({ error: err.message });
@@ -171,11 +206,13 @@ async function run() {
       }
     });
 
-    app.post("/task", verifyToken, async (req, res) => {
+    app.post("/task", verifyToken, verifyTaskCreator, async (req, res) => {
       try {
         const task = req.body;
         const { task_count, payable_amount, creator_email } = task;
+
         const result = await taskCollection.insertOne(task);
+
         const deductCoinAmount = task_count * payable_amount;
         await usersCollection.updateOne(
           { user_email: creator_email },
@@ -210,7 +247,7 @@ async function run() {
       }
     });
 
-    app.patch("/task/:id", verifyToken, async (req, res) => {
+    app.patch("/task/:id", verifyToken, verifyTaskCreator, async (req, res) => {
       try {
         const id = req.params.id;
         const { task_title, task_detail, submission_info } = req.body;
@@ -246,29 +283,34 @@ async function run() {
       }
     });
 
-    app.patch("/submission", verifyToken, async (req, res) => {
-      try {
-        const { id, status, coins, email } = req.body;
+    app.patch(
+      "/submission",
+      verifyToken,
+      verifyTaskCreator,
+      async (req, res) => {
+        try {
+          const { id, status, coins, email } = req.body;
 
-        if (coins && email) {
-          await usersCollection.updateOne(
-            { user_email: email },
-            { $inc: { coin: coins } }
+          if (coins && email) {
+            await usersCollection.updateOne(
+              { user_email: email },
+              { $inc: { coin: coins } }
+            );
+          }
+
+          const result = await submissionCollection.updateOne(
+            { _id: ObjectId.createFromHexString(id) },
+            { $set: { status: status } }
           );
+          res.send(result);
+        } catch (err) {
+          console.log(err);
+          res.send({ error: err.message });
         }
-
-        const result = await submissionCollection.updateOne(
-          { _id: ObjectId.createFromHexString(id) },
-          { $set: { status: status } }
-        );
-        res.send(result);
-      } catch (err) {
-        console.log(err);
-        res.send({ error: err.message });
       }
-    });
+    );
 
-    app.delete("/task", verifyToken, async (req, res) => {
+    app.delete("/task", verifyToken, verifyTaskCreator, async (req, res) => {
       try {
         const { id, coin, email } = req.body;
         await usersCollection.updateOne(
@@ -312,6 +354,25 @@ async function run() {
       }
     });
 
+    app.delete("/withdraw", verifyToken, verifyAdmin, async (req, res) => {
+      try {
+        const { withdraw_id, withdraw_coin, worker_email } = req.body;
+
+        await usersCollection.updateOne(
+          { user_email: worker_email },
+          { $inc: { coin: -withdraw_coin } }
+        );
+
+        const result = await withdrawCollection.deleteOne({
+          _id: ObjectId.createFromHexString(withdraw_id),
+        });
+        res.send(result);
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
+    });
+
     app.get("/payments", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const payments = await paymentCollection.find().toArray();
@@ -322,36 +383,46 @@ async function run() {
       }
     });
 
-    app.get("/payments/:email", verifyToken, async (req, res) => {
-      try {
-        const email = req.params.email;
-        const payments = await paymentCollection
-          .find({ email: email })
-          .toArray();
-        res.send(payments.reverse());
-      } catch (err) {
-        console.log(err);
-        res.send({ error: err.message });
+    app.get(
+      "/payments/:email",
+      verifyToken,
+      verifyTaskCreator,
+      async (req, res) => {
+        try {
+          const email = req.params.email;
+          const payments = await paymentCollection
+            .find({ email: email })
+            .toArray();
+          res.send(payments.reverse());
+        } catch (err) {
+          console.log(err);
+          res.send({ error: err.message });
+        }
       }
-    });
+    );
 
-    app.post("/create-payment-intent", verifyToken, async (req, res) => {
-      try {
-        const { dollars } = req.body;
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: parseInt(dollars * 100),
-          currency: "usd",
-          payment_method_types: ["card"],
-        });
+    app.post(
+      "/create-payment-intent",
+      verifyToken,
+      verifyTaskCreator,
+      async (req, res) => {
+        try {
+          const { dollars } = req.body;
+          const paymentIntent = await stripe.paymentIntents.create({
+            amount: parseInt(dollars * 100),
+            currency: "usd",
+            payment_method_types: ["card"],
+          });
 
-        res.send({ client_secret: paymentIntent.client_secret });
-      } catch (err) {
-        console.log(err);
-        res.send({ error: err.message });
+          res.send({ client_secret: paymentIntent.client_secret });
+        } catch (err) {
+          console.log(err);
+          res.send({ error: err.message });
+        }
       }
-    });
+    );
 
-    app.post("/payment", verifyToken, async (req, res) => {
+    app.post("/payment", verifyToken, verifyTaskCreator, async (req, res) => {
       try {
         const payment = req.body;
 
