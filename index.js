@@ -298,6 +298,21 @@ async function run() {
       }
     });
 
+    app.patch("/user/photo_url", verifyToken, async (req, res) => {
+      try {
+        const { email, photo_url } = req.body;
+
+        const result = await usersCollection.updateOne(
+          { user_email: email },
+          { $set: { photo_url: photo_url } }
+        );
+        res.send(result);
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
+    });
+
     app.patch(
       "/submission",
       verifyToken,
