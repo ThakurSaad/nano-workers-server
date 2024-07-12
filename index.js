@@ -115,8 +115,13 @@ async function run() {
     };
 
     app.get("/tasks", async (req, res) => {
-      const taskList = await taskCollection.find().toArray();
-      res.send(taskList.reverse());
+      try {
+        const taskList = await taskCollection.find().toArray();
+        res.send(taskList.reverse());
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
     });
 
     app.get("/task/:id", verifyToken, async (req, res) => {
@@ -151,11 +156,16 @@ async function run() {
     );
 
     app.get("/submission/:email", verifyToken, async (req, res) => {
-      const email = req.params.email;
-      const mySubmissions = await submissionCollection
-        .find({ worker_email: email })
-        .toArray();
-      res.send(mySubmissions.reverse());
+      try {
+        const email = req.params.email;
+        const mySubmissions = await submissionCollection
+          .find({ worker_email: email })
+          .toArray();
+        res.send(mySubmissions.reverse());
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
     });
 
     app.get(
@@ -177,9 +187,14 @@ async function run() {
     );
 
     app.get("/user/:email", verifyToken, async (req, res) => {
-      const email = req.params.email;
-      const user = await usersCollection.findOne({ user_email: email });
-      res.send(user);
+      try {
+        const email = req.params.email;
+        const user = await usersCollection.findOne({ user_email: email });
+        res.send(user);
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
     });
 
     app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
@@ -217,19 +232,24 @@ async function run() {
     });
 
     app.post("/users", async (req, res) => {
-      const user = req.body;
-      const user_email = user.user_email;
-      const existingUser = await usersCollection.findOne({
-        user_email: user_email,
-      });
-      if (existingUser) {
-        return res.send({
-          acknowledged: false,
-          message: "user already exists",
+      try {
+        const user = req.body;
+        const user_email = user.user_email;
+        const existingUser = await usersCollection.findOne({
+          user_email: user_email,
         });
+        if (existingUser) {
+          return res.send({
+            acknowledged: false,
+            message: "user already exists",
+          });
+        }
+        const result = await usersCollection.insertOne(user);
+        res.send(result);
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
       }
-      const result = await usersCollection.insertOne(user);
-      res.send(result);
     });
 
     app.post("/submission", verifyToken, async (req, res) => {
@@ -240,7 +260,7 @@ async function run() {
         const result = await submissionCollection.insertOne(submission);
 
         const notification = {
-          message: `${worker_name} has submitted ${task_title}. Waiting for review. Please visit My Home`,
+          message: `${worker_name} has submitted ${task_title}. Waiting for review. Please visit My Home.`,
           to_email: creator_email,
           status: "unread",
           current_time: getDateTime(),
