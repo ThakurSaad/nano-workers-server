@@ -220,7 +220,6 @@ async function run() {
     app.get("/notification/:email", verifyToken, async (req, res) => {
       try {
         const email = req.params.email;
-        console.log(email);
         const notifications = await notificationCollection
           .find({ to_email: email })
           .toArray();
@@ -297,6 +296,15 @@ async function run() {
           { user_email: creator_email },
           { $inc: { coin: -deductCoinAmount } }
         );
+
+        const notification = {
+          message: `You have posted a new task. ${payable_amount} coins have been deducted from you account.`,
+          to_email: worker_email,
+          status: "unread",
+          current_time: getDateTime(),
+        };
+        await notificationCollection.insertOne(notification);
+
         res.send(result);
       } catch (err) {
         console.log(err);
@@ -479,6 +487,14 @@ async function run() {
           { user_email: worker_email },
           { $inc: { coin: -withdraw_coin } }
         );
+
+        const notification = {
+          message: `Admin has approved your withdrawal request. You have withdraw ${withdraw_coin} coins from your account.`,
+          to_email: worker_email,
+          status: "unread",
+          current_time: getDateTime(),
+        };
+        await notificationCollection.insertOne(notification);
 
         const result = await withdrawCollection.deleteOne({
           _id: ObjectId.createFromHexString(withdraw_id),
