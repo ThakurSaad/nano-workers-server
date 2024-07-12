@@ -32,6 +32,9 @@ async function run() {
     const submissionCollection = client.db("nanoDB").collection("submissions");
     const withdrawCollection = client.db("nanoDB").collection("withdraws");
     const paymentCollection = client.db("nanoDB").collection("payments");
+    const notificationCollection = client
+      .db("nanoDB")
+      .collection("notifications");
 
     const verifyToken = (req, res, next) => {
       const bearer = req.headers.authorization;
@@ -98,6 +101,17 @@ async function run() {
         console.log(err);
         res.send({ error: err.message });
       }
+    };
+
+    const getDateTime = () => {
+      const options = {
+        month: "short",
+        day: "2-digit",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      };
+      return new Date().toLocaleDateString("en-US", options);
     };
 
     app.get("/tasks", async (req, res) => {
@@ -188,6 +202,20 @@ async function run() {
       }
     });
 
+    app.get("/notification/:email", verifyToken, async (req, res) => {
+      try {
+        const email = req.params.email;
+        console.log(email);
+        const notifications = await notificationCollection
+          .find({ to_email: email })
+          .toArray();
+        res.send(notifications.reverse());
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
+    });
+
     app.post("/users", async (req, res) => {
       const user = req.body;
       const user_email = user.user_email;
@@ -205,9 +233,25 @@ async function run() {
     });
 
     app.post("/submission", verifyToken, async (req, res) => {
-      const submission = req.body;
-      const result = await submissionCollection.insertOne(submission);
-      res.send(result);
+      try {
+        const submission = req.body;
+        const { task_title, worker_name, creator_email } = submission;
+
+        const result = await submissionCollection.insertOne(submission);
+
+        const notification = {
+          message: `${worker_name} has submitted ${task_title}. Waiting for review. Please visit My Home`,
+          to_email: creator_email,
+          status: "unread",
+          current_time: getDateTime(),
+        };
+        await notificationCollection.insertOne(notification);
+
+        res.send(result);
+      } catch (err) {
+        console.log(err);
+        res.send({ error: err.message });
+      }
     });
 
     app.post("/withdraw", verifyToken, async (req, res) => {
