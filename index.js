@@ -260,7 +260,7 @@ async function run() {
         const result = await submissionCollection.insertOne(submission);
 
         const notification = {
-          message: `${worker_name} has submitted ${task_title}. Waiting for review. Please visit My Home.`,
+          message: `${worker_name} has submitted the task "${task_title}". It is awaiting your review. Visit "My Home" for details.`,
           to_email: creator_email,
           status: "unread",
           current_time: getDateTime(),
@@ -383,19 +383,42 @@ async function run() {
       verifyTaskCreator,
       async (req, res) => {
         try {
-          const { id, status, coins, email } = req.body;
+          const { id, status, coins, worker_email, task_title } = req.body;
 
-          if (coins && email) {
+          if (coins && worker_email && status === "approved") {
             await usersCollection.updateOne(
-              { user_email: email },
+              { user_email: worker_email },
               { $inc: { coin: coins } }
             );
+
+            const notification = {
+              message: `You have received ${coins} coins 🎉`,
+              to_email: worker_email,
+              status: "unread",
+              current_time: getDateTime(),
+            };
+
+            await notificationCollection.insertOne(notification);
           }
 
           const result = await submissionCollection.updateOne(
             { _id: ObjectId.createFromHexString(id) },
             { $set: { status: status } }
           );
+
+          const message =
+            status === "approved"
+              ? `Your submission for the task "${task_title}" has been ${status} by the client. Visit "My Submissions" for details.`
+              : `Your submission for the task "${task_title}" has been ${status} by the client. Contact our support team for any complains. Visit "My Submissions" for details.`;
+
+          const notification = {
+            message,
+            to_email: worker_email,
+            status: "unread",
+            current_time: getDateTime(),
+          };
+          await notificationCollection.insertOne(notification);
+
           res.send(result);
         } catch (err) {
           console.log(err);
