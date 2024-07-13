@@ -435,6 +435,24 @@ async function run() {
       }
     );
 
+    app.patch(
+      "/notification/mark-as-read/:email",
+      verifyToken,
+      async (req, res) => {
+        try {
+          const email = req.params.email;
+          const result = await notificationCollection.updateMany(
+            { to_email: email, status: "unread" },
+            { $set: { status: "read" } }
+          );
+          res.send(result);
+        } catch (err) {
+          console.log(err);
+          res.send({ error: err.message });
+        }
+      }
+    );
+
     app.delete("/task", verifyToken, verifyTaskCreator, async (req, res) => {
       try {
         const { id, coin, email } = req.body;
