@@ -3,9 +3,7 @@ const app = express();
 const cors = require("cors");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const stripe = require("stripe")(
-  process.env.STRIPE_SECRET_KEY
-);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 5000;
 
@@ -51,12 +49,13 @@ async function run() {
       }
 
       const token = bearer.split(" ")[1];
+
       jwt.verify(
         token,
         process.env.ACCESS_TOKEN_SECRET,
         function (err, decoded) {
           if (err) {
-            console.log(err);
+            // console.log(err);
             return res.status(400).send({ message: "bad request" });
           } else {
             req.decoded = decoded;
@@ -306,8 +305,8 @@ async function run() {
         );
 
         const notification = {
-          message: `You have posted a new task. ${payable_amount} coins have been deducted from you account.`,
-          to_email: worker_email,
+          message: `You have posted a new task. ${deductCoinAmount} coins have been deducted from you account.`,
+          to_email: creator_email,
           status: "unread",
           current_time: getDateTime(),
         };
@@ -330,6 +329,7 @@ async function run() {
           { expiresIn: "24h" },
           function (err, token) {
             if (err) {
+              console.log("err", err.message);
               return res.send({ error: err.message });
             } else {
               return res.send({ token: token });
@@ -589,8 +589,17 @@ async function run() {
           { user_email: payment.email },
           { $inc: { coin: payment.coin_purchase } }
         );
-
         const result = await paymentCollection.insertOne(payment);
+
+        const notification = {
+          message: `Congratulations! You have successfully purchased ${payment.coin_purchase} coins. Thank you for your purchase!`,
+          to_email: payment.email,
+          status: "unread",
+          current_time: getDateTime(),
+        };
+
+        await notificationCollection.insertOne(notification);
+
         res.send(result);
       } catch (err) {
         console.log(err);
