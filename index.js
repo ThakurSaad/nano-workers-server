@@ -5,7 +5,8 @@ require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const jwt = require("jsonwebtoken");
-const port = process.env.PORT || 5000;
+const routes = require("./routes/index");
+const port = process.env.PORT || 5052;
 
 app.use(
   cors({
@@ -17,6 +18,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use("/", routes);
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.cpypwfl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -615,6 +617,6 @@ app.get("/", (req, res) => {
   res.send("nano machine's son");
 });
 
-app.listen(port, () => {
-  console.log(`nano bots are working on ${port}`);
+app.listen(port, "192.168.10.32", () => {
+  console.log(`nano bots are working on http://192.168.10.32:${port}`);
 });
