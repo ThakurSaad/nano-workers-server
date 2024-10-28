@@ -620,3 +620,7 @@ app.get("/", (req, res) => {
 app.listen(port, "192.168.10.32", () => {
   console.log(`nano bots are working on http://192.168.10.32:${port}`);
 });
+
+// app.listen(port, () => {
+//   console.log(`nano bots are working on http://localhost:${port}`);
+// });

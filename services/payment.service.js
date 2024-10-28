@@ -4,7 +4,7 @@ const generatePaypalAccessToken = require("../utils/generatePaypalAccessToken");
 const paypalPayment = async (req, res) => {
   const { access_token } = await generatePaypalAccessToken();
 
-  //   console.log(access_token);
+  // console.log(access_token);
 
   const response = await axios({
     url: process.env.PAYPAL_BASE_URL + "/v2/checkout/orders",
@@ -24,18 +24,18 @@ const paypalPayment = async (req, res) => {
               quantity: 1,
               unit_amount: {
                 currency_code: "USD",
-                value: "10.00",
+                value: "100.00",
               },
             },
           ],
 
           amount: {
             currency_code: "USD",
-            value: "10.00",
+            value: "100.00",
             breakdown: {
               item_total: {
                 currency_code: "USD",
-                value: "10.00",
+                value: "100.00",
               },
             },
           },
